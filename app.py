@@ -1,25 +1,26 @@
+import os
 from flask import Flask, request, jsonify
-from flask_cors import CORS  
+from flask_cors import CORS
 from diffusers import StableDiffusionPipeline
 import torch
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": ["http://localhost:3000", "https://myapp-lac-nine.vercel.app"]}})
 
-# ✅ Load the model ONCE when the server starts
+# Load the model ONCE when the server starts
 pipe = StableDiffusionPipeline.from_pretrained(
     "stabilityai/stable-diffusion-2-1",
-    torch_dtype=torch.float16
+    torch_dtype=torch.float16 
 ).to("cuda")
 
 @app.route("/generate", methods=["POST"])
 def generate_image():
     data = request.json
     prompt = data.get("prompt", "A futuristic cityscape at night")
-    num_steps = data.get("num_steps", 50)
-    guidance = data.get("guidance", 7.5)
+    num_steps = data.get("num_steps", 70)
+    guidance = data.get("guidance", 10.0)
 
-    # 🔥 Generate the image
+    # Generate the image
     image = pipe(prompt=prompt, num_inference_steps=num_steps, guidance_scale=guidance).images[0]
 
     # Save the image
@@ -29,4 +30,5 @@ def generate_image():
     return jsonify({"message": "Image generated!", "image_url": f"http://your-server.com/{image_path}"})
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
